@@ -65,45 +65,64 @@
 
 We want to create an image $\textbf{x}$ that:
 \begin{itemize}
-    \item Stays close to a target $\textbf{t}$ in terms of its channel values
-    \item Respects the structure of a reference $\textbf{p}$
+    \item Remains close to a target $\textbf{t}$ in terms of its \textit{channel values}
+    \item Respects the \textit{structure} of a reference $\textbf{p}$
 \end{itemize}
 
 \pause
 Optimization problem:
 $$\min_{x \in \textbf{R}^N} \frac{\lambda}{2} \sum_{1 \leq i, j \leq N}{\hat{W}_{i, j} (x_i - x_j)^2} + \sum_{1 \leq i \leq N}{c_i (x_i - t_i)^2}$$
-where $W_{ij}$ measures the similarity (in terms of color and location) between two pixels $i,j$ of $\textbf{p}$.
+where $W_{ij}$ measures the \textit{similarity} (in terms of color and location) between two pixels $i,j$ of $\textbf{p}$.
 
 \pause
-BUT $\textbf{x}$ is too large to solve this problem.
+BUT the dimension of $\textbf{x}$ is too large to solve this problem.
 \end{frame}
 
 \begin{frame}{Splat-blur-slice}
 \begin{figure}
 \centering
-\includegraphics[width=\linewidth]{pictures/SBS.png}
+\includegraphics[width=0.8\linewidth]{pictures/SBS.png}
 \caption{Illustration of the splat-blur-slice procedure on a 1D image}
 \end{figure}
 
 \pause
 This can be seen as a factorization $W \simeq S^T B S$.
 
-We can solve the optimization problem in bilateral space, using variable $\textbf{y} = S \textbf{x}$: huge dimension reduction!
+We can solve the optimization problem in bilateral space, using variable $\textbf{y} = S \textbf{x}$: huge \textit{dimension reduction}!
+
+Result: low-dimensional quadratic form in $\textbf{y}$ to minimize
 \end{frame}
 
-\subsection{Implementation details}
+\subsection{Algorithm}
 
-\section{Some applications}
+\begin{frame}{Algorithmic choices}
 
-\subsection{Cartooning and sharpening}
+Optimization method:
+\begin{itemize}
+    \item Quadratic form minimization is performed with the \textit{conjugate gradient} algorithm.
+    \item \textit{Hierarchical} space representation used in preconditioning: coarse to fine optimization.
+\end{itemize}
+
+\pause
+Implementation details:
+\begin{itemize}
+    \item Use of \textit{sparse} matrices: essential for speedy calculations.
+    \item \textit{Post-processing} with domain transform: useful to remove square artefacts.
+\end{itemize}
+    
+\end{frame}
+
+\section{Applications and comments}
+
+\subsection{Various use cases}
 
 \begin{frame}{Cartooning and sharpening}
 
 \only<1>{
 \begin{figure}
     \centering
-    \includegraphics[width=0.45\linewidth]{..code/results/smoothing_landscape_ref.png}
-    \includegraphics[width=0.45\linewidth]{..code/results/smoothing_landscape_new.png}
+    \includegraphics[width=0.45\linewidth]{../code/results/smoothing_landscape_ref.png}
+    \includegraphics[width=0.45\linewidth]{../code/results/smoothing_landscape_new.png}
     \caption{Result of cartooning}
     {\it Left: original picture. Right: smoothed version.}
 \end{figure}
@@ -112,8 +131,8 @@ We can solve the optimization problem in bilateral space, using variable $\textb
 \only<2>{
 \begin{figure}
     \centering
-    \includegraphics[width=0.45\linewidth]{..code/results/smoothing_landscape_new.png}
-    \includegraphics[width=0.45\linewidth]{..code/results/smoothing_landscape_DT_new.png}
+    \includegraphics[width=0.45\linewidth]{../code/results/smoothing_landscape_new.png}
+    \includegraphics[width=0.45\linewidth]{../code/results/smoothing_landscape_DT_new.png}
     \caption{Result of domain transform post-processing}
     {\it Left: smoothed with FBS. Right: smoothed with FBS + DT.}
 \end{figure}
@@ -122,8 +141,8 @@ We can solve the optimization problem in bilateral space, using variable $\textb
 \only<3>{
 \begin{figure}
     \centering
-    \includegraphics[width=0.45\linewidth]{..code/results/smoothing_landscape_ref.png}
-    \includegraphics[width=0.45\linewidth]{..code/results/smoothing_landscape_sharp.png}
+    \includegraphics[width=0.45\linewidth]{../code/results/smoothing_landscape_ref.png}
+    \includegraphics[width=0.45\linewidth]{../code/results/smoothing_landscape_sharp.png}
     \caption{Result of sharpening based on the smoothing.}
     {\it Left: original picture. Right: sharpened version.}
 \end{figure}
@@ -133,16 +152,26 @@ We can solve the optimization problem in bilateral space, using variable $\textb
 
 \end{frame}
 
-\subsection{Colorization}
+\begin{frame}{Depth superresolution}
+    \begin{figure}
+    \centering
+    \includegraphics<1>[width=0.6\linewidth]{../code/results/depth_superresolution_room_ref.png}
+    \includegraphics<1>[width=0.3\linewidth]{../code/results/depth_superresolution_room_target.png}
+    \includegraphics<2>[width=0.7\linewidth]{../code/results/depth_superresolution_room_new.png}
+    \caption{Result of depth superresolution}
+    \only<1>{\it Left: HIgh-resolution color picture.
+    
+    Right: low-resolution, noisy depth map.}
+    \only<2>{\it High-resolution depth map.}
+\end{figure}
+\end{frame}
 
 \begin{frame}{Colorization}
     \begin{figure}
     \centering
-    \includegraphics[width=0.3\linewidth]{..code/results/colorization_tesla_ref.png}
-    \pause
-    \includegraphics[width=0.3\linewidth]{..code/results/colorization_tesla_target.png}
-    \pause
-    \includegraphics[width=0.3\linewidth]{..code/results/colorization_tesla_new.png}
+    \includegraphics[width=0.3\linewidth]{../code/results/colorization_tesla_ref.png}
+    \includegraphics[width=0.3\linewidth]{../code/results/colorization_tesla_target.png}
+    \includegraphics[width=0.3\linewidth]{../code/results/colorization_tesla_new.png}
     \caption{Result of colorization}
     {\it Left: original BW picture. Center: user markings. Right: result.}
 \end{figure}
@@ -150,6 +179,24 @@ We can solve the optimization problem in bilateral space, using variable $\textb
 {\small Photo of Nikola Tesla by Napoleon Sarony (1893)}
 \end{frame}
 
-\subsection{Depth superresolution}
+\subsection{Comments}
+
+\begin{frame}{Pros and cons}
+    
+Advantages:
+\begin{itemize}
+    \item Very fast algorithm
+    \item Multiple use cases
+    \item Easy to integrate into a deep learning procedure
+\end{itemize}
+
+\pause
+Drawbacks:
+\begin{itemize}
+    \item Complexity strongly depends on the filter radius
+    \item Post-processing often necessary due to hard nearest-neighbor assignment
+\end{itemize}
+    
+\end{frame}
 
 \end{document}
