@@ -5,6 +5,7 @@
 \usepackage[right=3.5cm, left=3.5cm, top=3.5cm, bottom=3.5cm]{geometry}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{xcolor}
 
 \title{\textbf{The Fast Bilateral Solver}
 \\
@@ -18,16 +19,20 @@
 
 \tableofcontents
 
+\vspace{1cm}
+
+Code available in the following \textcolor{blue}{\href{https://github.com/gdalle/TheFastBilateralSolver}{GitHub repository}}.
+
 \newpage
 
-\section{Algorithm description}
+\subsection*{Introduction}
 
 Filtering is one of the most fundamental building blocks of image processing. The simplest smoothing method is a Gaussian filter, averaging pixels that are close together in a geometric sense. However, such a filter doesn't differentiate between smooth areas and sharp edges, which become blurred in the process.
 
-\medskip
-
-This project is based on "The Fast Bilateral Solver", by Jonathan T. Barron \& Ben Poole \cite{barron_fast_2016}.
+The present report is based on "The Fast Bilateral Solver", by Jonathan T. Barron \& Ben Poole \cite{barron_fast_2016}.
 The goal of the article is to define and efficiently implement an edge-aware smoother. This technology has countless applications, ranging from simple image "cartooning" or sharpening to automatic colorization or segmentation.
+
+\section{Algorithm description}
 
 \subsection{The model}
 
@@ -72,7 +77,7 @@ This translates into the following optimization problem:
 \end{equation}
 
 Here $t_i$ is the target value of pixel $i$, $c_i$ expresses the confidence we have in the value of that target. $\lambda$ defines the balance between both objectives of this minimization.
-Finally, $\hat{W}$ is a bistochastized version of $W$, which is meant to improve smoothing performance (for instance by ensuring conservation of the mean).
+Finally, $\hat{W}$ is a bistochastized version of $W$, an operation which is meant to improve smoothing performance (for instance by ensuring conservation of the mean).
 
 \medskip
 
@@ -86,31 +91,32 @@ This is where the bilateral space comes in. The main idea, described in \cite{ba
 
 Essentially, we can view a LUV image $\textbf{p}$ as a set of points in a a 5-dimensional space of positions $p = (p^x, p^y, p^l, p^u, p^v)$. To make coordinates homogeneous, we first scale them by their respective standard deviations $\sigma$. We then approximate the scaled positions with a periodic lattice, assigning each pixel to one or more of its nearest neighbors.
 
-The lattice points are called \textit{vertices}, and they live in the \textit{bilateral space}. The goal is that the number of vertices $V$ should be much smaller than the number of pixels $N$, and we will see that it is.
+The lattice points are called \textit{vertices}, and they live in the \textit{bilateral space}. The goal is that the number of vertices $V$ should be much smaller than the number of pixels $N$.
 
 \medskip
 
 Now imagine for a moment that we must filter a vector of pixel values $\textbf{x}$ with a simple matrix multiplication: forget about the optimization problem \eqref{optim}, we just want to compute $W\textbf{x}$.
-To approximate that operation (which we deem too expensive to perform exactly), we use the bilateral space through the following three-step procedure:
+To approximate that operation, which we deem too expensive to perform exactly, we use the bilateral space through the following three-step procedure (represented graphically in figure \ref{fig:SBS}):
 \begin{enumerate}
-    \item \textit{Splat}: Split each pixel value $x_i$ onto the vertices that are closest to $p_i$
+    \item \textit{Splat}: Project each pixel value $x_i$ onto the vertices that are closest to $p_i$
     \item \textit{Blur}: Perform a smoothing operation of vertex values $y_v$ in the bilateral space
-    \item \textit{Slice} : Interpolate the new value $\tilde{x}_i$ from the blurred values $\tilde{y}_v$ of the vertices closest to $p_i$
+    \item \textit{Slice} : Interpolate the new pixel value $\tilde{x}_i$ from the blurred values $\tilde{y}_v$ of the vertices closest to $p_i$
 \end{enumerate}
-This is represented graphically in figure \ref{fig:SBS}.
 
 \begin{figure}
     \centering
     \includegraphics[width=\linewidth]{pictures/SBS.png}
     \caption{Illustration of the splat-blur-slice procedure on a 1D image (taken from \cite{barron_fast_2015})}
+    {\small \it The orange squares are the positions of the image pixels, the grey circles are all the vertices of the bilateral space. The cells containing no image pixel are associated to vertices we later discard.
+    }
     \label{fig:SBS}
 \end{figure}
 
 \medskip
 
-In the simplified bilateral grid (adapted by \cite{barron_fast_2015} from \cite{chen_real-time_2007}) which is the one we implemented, the lattice is composed of the integer points $\textbf{Z}^5$, and the blurring operation will simply average a vertex with its 2 closest neighbors on each of the 5 axes: this boils down to a sum of 5 $(1, 2, 1)$ filters along different directions.
+In the simplified bilateral grid (adapted by \cite{barron_fast_2015} from \cite{chen_real-time_2007}) which is the one we implemented, the lattice is composed of the integer points $\textbf{Z}^5$. As for the blurring operation, it simply averages a vertex with its 2 closest neighbors on each of the 5 axes: this boils down to a sum of 5 $(1, 2, 1)$ filters. The example in figure \ref{fig:SBS} uses this approach.
 
-We indeed observe a huge dimension reduction, because we are actually sampling from a 2D structure inside a 5D lattice. Indeed, only vertices that are close to the original image (a 2D manifold in $\textbf{R}^5$) will actually matter, so that we can discard the rest.
+We indeed observe a huge dimension reduction, because we are actually sampling from a 2-dimensional structure (manifold) inside a 5D lattice. Indeed, only vertices that are close to the original image will actually matter, so that we can discard the rest. In addition, the scaling by $\sigma$ groups vertices together and contributes to the small number of useful vertices.
 
 \medskip
 
@@ -125,7 +131,7 @@ Although the original articles introducing splat-blur-slice techniques did not s
     W \simeq S^T B S
 \end{equation}
 
-This interpretation is illustrated in figure \ref{fig:SBS2}.
+This interpretation was proposed by \cite{barron_fast_2015} and it is illustrated in figure \ref{fig:SBS2}.
 
 \begin{figure}
     \centering
@@ -145,9 +151,9 @@ Here $S$ is the matrix of pixel-to-vertex assignment (responsible for splatting 
 
 \medskip
 
-Using this factorization idea, we can define a bilateral space optimization variable $\textbf{y} = S \textbf{x} \in \textbf{R}^V$ which has a much lower dimension than $\textbf{x}$. The original optimization problem can then be expressed as a quadratic minimization in the bilateral space:
+Using this factorization idea, we define a bilateral space optimization variable $\textbf{y} = S \textbf{x} \in \textbf{R}^V$ which has a much lower dimension than $\textbf{x} \in \textbf{R}^N$. The original optimization problem can then be expressed as a quadratic minimization performed directly in the bilateral space:
 \begin{equation} \label{optim2}
-    \min_{\textbf{y} \in \textbf{R}^V} \frac{1}{2}\textbf{y}^T A \textbf{y} - \textbf{b}^T y + c
+    \min_{\textbf{y} \in \textbf{R}^V} \left( \frac{1}{2}\textbf{y}^T A \textbf{y} - \textbf{b}^T y + c \right)
 \end{equation}
 
 Here $A$, $\textbf{b}$ and $c$ depend on the splat and blur matrices $S$ and $B$, as well as the confidence level $\textbf{c}$, the target image $\textbf{t}$ and the regularization parameter $\lambda$. More precisely:
@@ -155,7 +161,7 @@ Here $A$, $\textbf{b}$ and $c$ depend on the splat and blur matrices $S$ and $B$
     A = \lambda (D_m - D_n B D_n) + \mathrm{diag}(S\textbf{c})
 \end{equation}
 
-From this expression, we see that $A$ is a symmetric matrix, and (at least for large enough $\lambda$), it is nonnegative, hence the minimum exists and is unique.
+From this expression, we see that $A$ is a symmetric matrix. Assuming it is also positive, the minimum exists and is unique.
 In that case, by differentiation, the minimization is equivalent to solving the following linear system:
 
 \begin{equation} \label{linsyst}
@@ -204,11 +210,11 @@ The gradient of the loss in pyramid space is then given by:
 \end{equation}
 
 Since $P$ is a linear operation, performing the operation in the pyramid space is actually equivalent to using a preconditioner in the conjugate gradient method.
-This is a sanity check because it is known that the performance of the conjugate gradient method in large-scale problems can be substantially improved by preconditioning.
+Luckily, it is known that the performance of the conjugate gradient method in large-scale problems can be substantially improved by preconditioning, a behaviour which is indeed observed with this hierarchical scheme.
 
 \subsubsection{Refinements}
 
-Several tweaks are made to the algorithm in order to improve its performance and generalize it. They were not taken into account for our implementation.
+Several tweaks are made to the algorithm in order to improve its performance and generalize it. Not all of them were taken into account for our implementation.
 
 \paragraph{Initialization:} The initialization can help speed up the convergence if it is well chosen. Here, the heuristic is to select the solution of the optimization problem \eqref{optim2} in the case $\lambda = 0$, which corresponds to
 \begin{equation}
@@ -231,7 +237,7 @@ Due to the hard assignment of a pixel to its nearest-neighbor in the bilateral g
 
 The idea behind the domain transform is to define an isotropic one-dimensional transform $\mathbf{R}^D \to \mathbf{R}$, which preserves the distance between the positions (coordinates and channel values) of an image's pixels.
 
-This one-dimensional transform is then used to apply a bilateral filter alternately on the rows and columns of the image, with steadily decreasing spatial standard deviation $\sigma_s$ but constant chromatic standard deviation $\sigma_r$. The transform being a real-valued increasing function, it allows for an efficient computation of the bilateral filter by reducing it (approximately) to a box filter.
+This one-dimensional transform is then used to apply a bilateral filter alternately on the rows and columns of the image, with steadily decreasing spatial standard deviation $\sigma_s'$ but constant chromatic standard deviation $\sigma_r'$ (which can also be set channel per channel). The transform being a real-valued increasing function, it allows for an efficient computation of the bilateral filter by reducing it (approximately) to a box filter.
 
 \section{Applications and discussion}
 
@@ -273,25 +279,25 @@ We tested the method using a dummy black and white image with a sharp diagonal e
 
 \begin{figure}
     \centering
-    \includegraphics[width=6cm]{pictures/BW/reference.png}
+    \includegraphics[width=6cm]{../code/results/reference.png}
     \hspace{1cm}
-    \includegraphics[width=6cm]{pictures/BW/noisy_reference.png}
+    \includegraphics[width=6cm]{../code/results/noisy_reference.png}
     \caption{Dummy image with and without noise for edge-aware smoothing}
     \label{fig:dummy}
 \end{figure}
 
-The default filter parameters are $\lambda = 100$, $\sigma_xy = 10$ and $\sigma_l = 50$. For each parameter, deviations around these standard settings are tested and commented.
+The default filter parameters are $\lambda = 100$, $\sigma_{xy} = 10$ and $\sigma_l = 50$. For each parameter, deviations around these standard settings are tested and commented.
 
 \medskip
 
-First, the influence of the regularization parameter $\lambda$ is studied in figure \ref{fig:lambda}. For small values of $\lambda$, the regularization term doesn't have any effect, and the target image is simply copied. As $\lambda$ grows larger, the regularization kicks in, but when it gets too large the target image becomes forgotten and all that matters is regularity, leading to a uniform result.
+First, the influence of the regularization parameter $\lambda$ is studied in figure \ref{fig:lambda}. For small values of $\lambda$, the regularization term doesn't have any effect, and the target image is simply copied. As $\lambda$ grows larger, the regularization kicks in, but when it gets too large the target image becomes forgotten and all that matters is regularity, leading to a near-uniform result.
 
 \begin{figure}
     \centering
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_lambda_1_10_50_new.png}
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_lambda_10_10_50_new.png}
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_lambda_100_10_50_new.png}
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_lambda_1000_10_50_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_lambda_1_10_50_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_lambda_10_10_50_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_lambda_100_10_50_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_lambda_1000_10_50_new.png}
     \caption{Result of the edge-aware smoothing with $\lambda = 1, 10, 100, 1000$}
     \label{fig:lambda}
 \end{figure}
@@ -302,10 +308,10 @@ Then, the influence of the spatial filter radius $\sigma_{xy}$ is analyzed in fi
 
 \begin{figure}
     \centering
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_sigmaxy_100_2_50_new.png}
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_sigmaxy_100_5_50_new.png}
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_sigmaxy_100_10_50_new.png}
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_sigmaxy_100_20_50_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_sigmaxy_100_2_50_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_sigmaxy_100_5_50_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_sigmaxy_100_10_50_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_sigmaxy_100_20_50_new.png}
     \caption{Result of the edge-aware smoothing with $\sigma_{xy} = 2, 5, 10, 20$}
     \label{fig:sigma_xy}
 \end{figure}
@@ -316,10 +322,10 @@ Finally, the influence of the luminance filter radius $\sigma_{l}$ is demonstrat
 
 \begin{figure}
     \centering
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_sigmal_100_10_5_new.png}
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_sigmal_100_10_20_new.png}
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_sigmal_100_10_50_new.png}
-    \includegraphics[width=3.5cm]{pictures/BW/smoothing_diag_sigmal_100_10_200_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_sigmal_100_10_5_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_sigmal_100_10_20_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_sigmal_100_10_50_new.png}
+    \includegraphics[width=3.5cm]{../code/results/smoothing_diag_sigmal_100_10_200_new.png}
     \caption{Result of the edge-aware smoothing with $\sigma_{l} = 5, 20, 50, 200$}
     \label{fig:sigma_l}
 \end{figure}
@@ -330,23 +336,39 @@ Besides analyzing the behaviour of the algorithm, there are other applications t
 
 \medskip
 
-Here is an example of cartooning and sharpening applied to a landscape photograph (see figure \ref{fig:auvergne_original}) taken in one of France's most beautiful places: the Auvergne region \footnote{Picture taken from \texttt{https://www.pleinevie.fr/loisirs/tourisme/france/volcans-d-auvergne\\-cap-sur-des-puys-a-la-chaine-21316}}. The algorithm parameters were $\lambda = 100$, $\sigma_{xy} = 10$, $\sigma_{rgb} = 50$ (judging by the final result, no domain transform post-processing was necessary).
-
-Figure \ref{fig:auvergne} presents the results of smoothing, and then the superposition of the original image $I$ and the difference between $I$ and its smoothed version $S(I)$: $I + [S(I) - I]$ is an image where the details of the original are more prevalent.
+Below is an example of cartooning and sharpening applied to a landscape photograph (see figure \ref{fig:auvergne_original}) taken in one of France's most beautiful regions: the Auvergne \footnote{Picture taken from \texttt{https://www.pleinevie.fr/loisirs/tourisme/france/volcans-d-auvergne\\-cap-sur-des-puys-a-la-chaine-21316}}. The algorithm parameters were $\lambda = 100$, $\sigma_{xy} = 10$, $\sigma_{rgb} = 50$.
 
 \begin{figure}
     \centering
-    \includegraphics[width=7cm]{pictures/smoothing_auvergne_ref.png}
+    \includegraphics[width=12cm]{../code/results/smoothing_auvergne_ref.png}
     \caption{Original picture taken from the Puy de Pariou}
     \label{fig:auvergne_original}
 \end{figure}
 
+Figure \ref{fig:auvergne_smooth} presents the results of smoothing, and figure \ref{fig:auvergne_sharp} the results of subsequent sharpening. For enhancing the details, we use a superposition of the original image $I$ and the difference between $I$ and its smoothed version $S(I)$: the result $I + [S(I) - I]$ is an image where the details of the original are more salient.
+
+
 \begin{figure}
     \centering
-    \includegraphics[width=7cm]{pictures/smoothing_auvergne_new.png}
-    \includegraphics[width=7cm]{pictures/smoothing_auvergne_sharp.png}
-    \caption{Result of edge-aware smoothing and subsequent sharpening}
-    \label{fig:auvergne}
+    \includegraphics[width=12cm]{../code/results/smoothing_auvergne_new.png}
+    \label{fig:auvergne_smooth}
+    \caption{Result of edge-aware smoothing}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=12cm]{../code/results/smoothing_auvergne_sharp.png}
+    \caption{Result of sharpening based on edge-aware smoothing}
+    \label{fig:auvergne_sharp}
+\end{figure}
+
+If we zoom in on figure \ref{fig:auvergne_smooth}, we can see the square artefacts induced by the choice of $\sigma_{xy} = 10$. For instance, in the sky, supposedly homogeneous regions are tessellated with squares of size 10*10 pixels. This is what the domain transform post-processing was introduced to solve however it comes at the cost of a new filtering step which further eliminated details. Figure \ref{fig:auvergne_DT} shows the result of this last step, with parameters $\sigma_s' = 20$ and $\sigma_r' = 50$.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=12cm]{../code/results/smoothing_auvergne_DT_new.png}
+    \caption{Application of domain transform on smoothed image to remove square artefacts}
+    \label{fig:auvergne_DT}
 \end{figure}
 
 \subsubsection{Depth superresolution}
@@ -361,8 +383,8 @@ Approximately following the test procedure laid out by \cite{ferstl_image_2013},
 
 \begin{figure}
     \centering
-    \includegraphics[width=9cm]{pictures/depth_superresolution_room_ref.png}
-    \includegraphics[width=5cm]{pictures/depth_superresolution_room_target.png}
+    \includegraphics[width=9cm]{../code/results/depth_superresolution_room_ref.png}
+    \includegraphics[width=5cm]{../code/results/depth_superresolution_room_target.png}
     \caption{High-resolution color reference and noisy low-resolution depth map}
     \label{fig:room_original}
 \end{figure}
@@ -375,7 +397,7 @@ However, the fact that the supposed depth of the chess board (left-hand side of 
 
 \begin{figure}
     \centering
-    \includegraphics[width=10cm]{pictures/depth_superresolution_room_new.png}
+    \includegraphics[width=10cm]{../code/results/depth_superresolution_room_new.png}
     \caption{High-resolution denoised depth map}
     \label{fig:room}
 \end{figure}
@@ -388,7 +410,7 @@ Finally, as mentioned in the beginning of this report, the Fast Bilateral Solver
 
 We worked on a black and white picture of the Hindenburg's crash in 1937, taken by Murray Becker. The color markings were done in a very rough way, aiming at an esthetically pleasing result rather than a historically correct one: they are reproduced in figure \ref{fig:hindenburg_original}.
 
-As for the algorithm parameters, we used the following settings: $\lambda = 5$, $\sigma_{xy} = 10$, $\sigma_l = 40$, $\sigma_{xy}' = 2$, $\sigma_{luv}' = 20$. 
+As for the algorithm parameters, we used the following settings: $\lambda = 5$, $\sigma_{xy} = 10$, $\sigma_l = 50$, $\sigma_s' = 20$, $\sigma_r' = 50$.
 
 \medskip
 
@@ -396,22 +418,22 @@ The colorized result can be seen in figure \ref{fig:hindenburg}. We notice that 
 
 \begin{figure}
     \centering
-    \includegraphics[width=7cm]{pictures/colorization_hindenburg_ref.png}
-    \includegraphics[width=7cm]{pictures/colorization_hindenburg_target.png}
+    \includegraphics[width=7cm]{../code/results/colorization_hindenburg_ref.png}
+    \includegraphics[width=7cm]{../code/results/colorization_hindenburg_target.png}
     \caption{Black \& white original and color-marked versions of the Hindenburg disaster}
     \label{fig:hindenburg_original}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[width=13cm]{pictures/colorization_hindenburg_new.png}
+    \includegraphics[width=13cm]{../code/results/colorization_hindenburg_new.png}
     \caption{Automatically colorized version of the Hindenburg disaster}
     \label{fig:hindenburg}
 \end{figure}
 
 \subsection{Discussion}
 
-\subsubsection{Advantages}
+\subsubsection{Many advantages}
 
 The Fast Bilateral Solver presents several advantages over previous methods, which make it interesting in a number of situations. Here are a few:
 
@@ -424,17 +446,17 @@ The Fast Bilateral Solver presents several advantages over previous methods, whi
     
     \item It is rapidly implementable in any programming language: the only crucial requirement is an efficient implementation of sparse matrices.
     
-    \item It has few hyperparameters, all of which have a clear intuitive meaning ($\lambda$ for regularization and $\sigma$ for the filter radius) being the most important ones.
+    \item It has few hyperparameters, all of which have a clear intuitive meaning: $\lambda$ for regularization and $\sigma$ for the filter radius are the most important ones.
     
-    \item It is general: the idea of splat-blur-slice factorization can be applied accross a whole range of image processing problems.
+    \item It is general: the idea of splat-blur-slice factorization and the optimization problem per se can be used accross a whole range of image processing problems.
     
-    \item It is easily integrated into a deep learning pipeline, because the backpropagation of the error on $\textbf{x}$ onto the error on $\textbf{t}, \textbf{c}$ can be written explicitly.
+    \item It is easily integrated into a deep learning pipeline, because the backpropagation of the error on $\textbf{x}$ onto the error on $(\textbf{t}, \textbf{c})$ can be computed efficiently. This is partly due to $A$ depending on $\textbf{t}$ and $\textbf{c}$ only through its diagonal coefficients.
     
 \end{itemize}
 
-\subsubsection{Possible improvements}
+\subsubsection{Some drawbacks}
 
-However, some drawbacks still make this procedure perfectible. Moreover, some parts in the article were not very clear, or deserve improvements. We will try to list a few shortcomings below:
+However, a few aspects still make the whole procedure perfectible, or weren't very clear in the article. We will try to list a few negative points below:
 
 \begin{itemize}
     \item The complexity of the algorithm is dependent upon the value of the filter radius $\sigma$. The smaller the values in $\sigma$, the more bilateral vertices there will be, which slows down the whole procedure.
@@ -443,10 +465,14 @@ However, some drawbacks still make this procedure perfectible. Moreover, some pa
     
     This can be solved through the use of more sophisticated grids, such as the permutohedral lattice of \cite{adams_fast_2010}, which splats a pixel onto several vertices. However, the implementation becomes substantially more complicated as a result, and the runtime of the algorithm increases due to harder nearest-neighbor computations and a less sparse $S$ matrix.
     
-    \item The frequent use of domain transform post-processing in the article makes it hard to separate between the merits of both procedures, which were both designed to solve the same problem. While in a few settings, we indeed observed that the domain transform allowed for a reduction of the square artefacts induced by the simplified bilateral grid, maybe changing the parameters of the grid would have helped as well. If the domain transform is always necessary, it may mean the initial algorithm is not sufficient.
+    \item The systematic use of domain transform post-processing in \cite{barron_fast_2016} makes it hard to separate between the merits of both procedures, which were both designed to solve the same problem. While in a few settings, we indeed observed that the domain transform allowed for a reduction of the square artefacts induced by the simplified bilateral grid, maybe changing the parameters of the grid would have helped as well. If the domain transform is always necessary, it may mean the initial algorithm is not sufficient.
     
     In addition, although our \textsc{Python} code was heavily profiled and optimized, the domain transform remained (by far) the slowest part of the procedure, which is why (most of the time) we dispensed with it to focus on the Fast Bilateral Solver per se.
 \end{itemize}
+
+\subsection*{Conclusion}
+
+The Fast Bilateral Solver is a very general edge-aware filter than can be applied to a wide variety of image-related tasks. Its very general optimization problem, along with its ease of implementation and small computational cost, make it a valuable addition to any image-processing toolbox, including deep-learning frameworks.
 
 \newpage
 
