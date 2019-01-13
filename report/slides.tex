@@ -1,0 +1,66 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage{graphics}
+\usepackage{subfig}
+\usepackage{wrapfig}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{xcolor}
+\usepackage{mathtools}
+
+\usetheme{Warsaw}
+\setbeamercovered{transparent} % transparent after pause
+\setbeamertemplate{caption}[numbered] % numbered figures
+\setbeamertemplate{navigation symbols}{} %remove navigation symbols
+\addtobeamertemplate{navigation symbols}{}{ % add page numbers instead
+    \usebeamerfont{footline}%
+    \usebeamercolor[fg]{footline}%
+    \hspace{1em}%
+    \insertframenumber/\inserttotalframenumber
+}
+\AtBeginSection{\frame{\sectionpage}} % add automatic section title frames
+
+\usefonttheme[onlymath]{serif} % set math font
+\definecolor{mathcolor}{RGB}{0,0,255} % define math color
+\setbeamercolor{math text}{fg=mathcolor} % set in-text math color
+\setbeamercolor{math text displayed}{fg=mathcolor} % set display math color
+\addtobeamertemplate{frametitle}{\donotcoloroutermaths} % cancel math coloring in frame titles
+
+% General shortcuts
+\newcommand{\Ee}{\mathbb{E}}
+\newcommand{\Pp}{\mathbb{P}}
+\newcommand{\Vv}{\mathbb{V}}
+\newcommand{\Rr}{\mathbf{R}}
+\newcommand{\one}{\mathbf{1}}
+\newcommand{\intd}{\mathrm{d}}
+
+% Problem-specific notation
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\probaspace}{\mathcal{P}}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\Ll}{\mathbb{L}}
+\newcommand{\identity}{\mathrm{i}}
+\newcommand{\allF}{\mathfrak{F}}
+\newcommand{\transportdistance}{\mathsf{d}_{\mathsf{transport}}}
+\newcommand{\multistagedistance}{\mathsf{d}_{\mathsf{multistage}}}
+\newcommand{\nesteddistance}{\mathsf{d}_{\mathsf{nested}}}
+\newcommand{\leaves}{\mathrm{leaves}}
+
+\title[The Fast Bilateral Solver]{\textit{The Fast Bilateral Solver}
+- Barron \& Poole}
+\author{Guillaume Dalle}
+\institute{MVA - Imagerie numérique}
+\date{16/01/2019}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Overview}
+\tableofcontents
+\end{frame}
+
+
+
+\end{document}
