@@ -54,7 +54,7 @@ From now on, we will work with a reference image $\textbf{p} = (p_i)_{i \in [N]}
 
 This combination idea was first introduced by \cite{tomasi_bilateral_1998}, among others.
 
-With this in mind, we can define an edge-aware measure of similarity between two pixels of the reference image, taking into account not only their spatial proximity but also their color proximity. Given a vector $\sigma = (\sigma_{xy}, \sigma_l, \sigma_{uv})$ of standard deviations, we define a gaussian similarity between pixels $i$ and $j$ in the following way:
+With this in mind, we can define an edge-aware measure of similarity between two pixels of the reference image, taking into account not only their spatial proximity but also their color proximity. Given a vector $\sigma = (\sigma_{xy}, \sigma_l, \sigma_{uv})$ of standard deviations, we define a gaussian affinity between pixels $i$ and $j$ in the following way:
 \begin{equation}
     W_{i, j} = \exp \left(
     - \frac{|| (p_i^x, p_i^y) - (p_j^x, p_j^y) ||^2}{2 \sigma_{xy}^2}
@@ -279,9 +279,9 @@ We tested the method using a dummy black and white image with a sharp diagonal e
 
 \begin{figure}
     \centering
-    \includegraphics[width=6cm]{../code/results/reference.png}
+    \includegraphics[width=6cm]{../code/results/smoothing_diag_basis.png}
     \hspace{1cm}
-    \includegraphics[width=6cm]{../code/results/noisy_reference.png}
+    \includegraphics[width=6cm]{../code/results/smoothing_diag_noisy_basis.png}
     \caption{Dummy image with and without noise for edge-aware smoothing}
     \label{fig:dummy}
 \end{figure}
@@ -383,8 +383,8 @@ Approximately following the test procedure laid out by \cite{ferstl_image_2013},
 
 \begin{figure}
     \centering
-    \includegraphics[width=9cm]{../code/results/depth_superresolution_room_ref.png}
-    \includegraphics[width=5cm]{../code/results/depth_superresolution_room_target.png}
+    \includegraphics[width=12cm]{../code/results/depth_superresolution_room_ref.png}
+    \includegraphics[width=6cm]{../code/results/depth_superresolution_room_target.png}
     \caption{High-resolution color reference and noisy low-resolution depth map}
     \label{fig:room_original}
 \end{figure}
@@ -397,7 +397,7 @@ However, the fact that the supposed depth of the chess board (left-hand side of 
 
 \begin{figure}
     \centering
-    \includegraphics[width=10cm]{../code/results/depth_superresolution_room_new.png}
+    \includegraphics[width=12cm]{../code/results/depth_superresolution_room_new.png}
     \caption{High-resolution denoised depth map}
     \label{fig:room}
 \end{figure}
