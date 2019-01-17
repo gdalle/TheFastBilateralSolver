@@ -72,13 +72,17 @@ We want to create an image $\textbf{x}$ that:
 \pause
 Optimization problem:
 $$\min_{x \in \textbf{R}^N} \frac{\lambda}{2} \sum_{1 \leq i, j \leq N}{\hat{W}_{i, j} (x_i - x_j)^2} + \sum_{1 \leq i \leq N}{c_i (x_i - t_i)^2}$$
-where $W_{ij}$ measures the \textit{similarity} (in terms of color and location) between two pixels $i,j$ of $\textbf{p}$.
+where $W_{ij}$ measures the \textit{similarity} (in terms of color and location) between two pixels $i,j$ of $\textbf{p}$, depending on a filter radius $\sigma$.
 
 \pause
 BUT the dimension of $\textbf{x}$ is too large to solve this problem.
 \end{frame}
 
 \begin{frame}{Splat-blur-slice}
+Splat-blur-slice = association of the $\sigma$-scaled pixels with bilateral space \textit{vertices}
+
+\pause
+
 \begin{figure}
 \centering
 \includegraphics[width=0.8\linewidth]{pictures/SBS.png}
